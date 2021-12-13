@@ -1,11 +1,11 @@
 package com.xcq1
 
+import com.xcq1.plugins.configureRouting
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import com.xcq1.plugins.*
 
-fun main() {
+fun main(k8sHost: String?) {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
-        configureRouting()
+        configureRouting(k8sHost)
     }.start(wait = true)
 }

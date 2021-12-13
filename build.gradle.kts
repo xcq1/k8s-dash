@@ -29,6 +29,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logback_version")
 
     implementation("io.fabric8:kubernetes-client:5.10.1")
+    testImplementation("io.fabric8:mockwebserver:0.0.17")
 
     testImplementation("io.ktor:ktor-server-tests:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
