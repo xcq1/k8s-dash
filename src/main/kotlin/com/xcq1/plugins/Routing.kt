@@ -147,7 +147,8 @@ fun Application.configureRouting(k8sHost: String?) {
                                |xhr.open("POST", "/update?sts=" + sts + "&start=" + start, false);
                                |xhr.send();
                                |location.reload();
-                               |}""".trimMargin()
+                               |}
+                               |window.setTimeout(function() { location.reload(); }, 30000);""".trimMargin()
                             }
                         }
                     }
