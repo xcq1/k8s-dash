@@ -4,6 +4,8 @@ import com.xcq1.plugins.configureRouting
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 
+fun main() = main(null)
+
 fun main(k8sHost: String?) {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
         configureRouting(k8sHost)

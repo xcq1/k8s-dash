@@ -36,9 +36,6 @@ dependencies {
 }
 
 jib {
-    container {
-        mainClass = "com.xcq1.ApplicationKt"
-    }
     to {
         image = "ghcr.io/xcq1/k8s-dash"
         auth {
