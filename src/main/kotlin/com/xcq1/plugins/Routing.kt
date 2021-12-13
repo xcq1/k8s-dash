@@ -75,6 +75,9 @@ fun Application.configureRouting(k8sHost: String?) {
                     rule(".greenish") {
                         color = Color("#7f7")
                     }
+                    rule(".yellowish") {
+                        color = Color("#ff7")
+                    }
 
                     // switch/slider
 
@@ -136,21 +139,13 @@ fun Application.configureRouting(k8sHost: String?) {
 
             get("/") {
                 val statefulSets = client.apps().statefulSets().list()
+                var idCounter = 1
+                val scriptLines = mutableListOf<String>()
+
                 call.respondHtml {
                     head {
                         link(rel = "stylesheet", href = "/styles.css", type = "text/css")
                         link(rel = "stylesheet", href = "https://fonts.googleapis.com/icon?family=Material+Icons")
-                        script(type = "text/javascript") {
-                            unsafe {
-                                +"""function update(sts, start) {
-                               |var xhr = new XMLHttpRequest();
-                               |xhr.open("POST", "/update?sts=" + sts + "&start=" + start, false);
-                               |xhr.send();
-                               |location.reload();
-                               |}
-                               |window.setTimeout(function() { location.reload(); }, 30000);""".trimMargin()
-                            }
-                        }
                     }
                     body {
                         h1(classes = "page-title") {
@@ -166,34 +161,66 @@ fun Application.configureRouting(k8sHost: String?) {
                             statefulSets.items.forEach { sts ->
                                 val podPresent = sts.status.replicas > 0
                                 val podReady = sts.status.readyReplicas?.let { it > 0 } ?: false
+                                val updateShouldWarn = podPresent && !podReady
+
+                                val extraClass = when {
+                                    !podPresent && podReady -> " reddish"
+                                    podPresent && !podReady -> " yellowish"
+                                    podPresent && podReady -> " greenish"
+                                    else -> ""
+                                }
 
                                 li {
                                     +sts.metadata.name
                                     span {
-                                        when {
-                                            !podPresent && !podReady -> span(classes = "material-icons") { +"hide_source" }
-                                            !podPresent && podReady -> span(classes = "material-icons reddish") { +"flag" }
-                                            podPresent && !podReady -> span(classes = "material-icons") { +"hourglass_empty" }
-                                            podPresent && podReady -> span(classes = "material-icons greenish") { +"public" }
-                                        }
+                                        span(classes = "material-icons$extraClass") {
+                                            when {
+                                                !podPresent && !podReady -> +"hide_source"
+                                                !podPresent && podReady -> +"flag"
+                                                podPresent && !podReady -> +"hourglass_empty"
+                                                podPresent && podReady -> +"public"
+                                            }
 
-                                    }
-                                    span(classes = "marginleft") {
-                                        when {
-                                            !podPresent && !podReady -> +"Stopped"
-                                            !podPresent && podReady -> +"Error"
-                                            podPresent && !podReady -> +"Starting"
-                                            podPresent && podReady -> +"Running"
                                         }
-                                    }
-                                    label(classes = "switch") {
-                                        input(type = InputType.checkBox) {
-                                            checked = sts.spec.replicas > 0
-                                            onChange = "update(\"${sts.metadata.name.escapeHTML()}\", ${if (sts.spec.replicas > 0) "false" else "true"})"
+                                        span(classes = "marginleft$extraClass") {
+                                            when {
+                                                !podPresent && !podReady -> +"Stopped"
+                                                !podPresent && podReady -> +"Error"
+                                                podPresent && !podReady -> if (sts.spec.replicas > 0) +"Starting" else +"Stopping"
+                                                podPresent && podReady -> +"Running"
+                                            }
                                         }
-                                        span(classes = "slider round") { }
+                                        label(classes = "switch") {
+                                            input(type = InputType.checkBox) {
+                                                checked = sts.spec.replicas > 0
+                                                id = "switch-$idCounter"
+                                                scriptLines += "document.getElementById('switch-$idCounter').addEventListener('click'," +
+                                                        "function(e) { if (!update(\"${sts.metadata.name.escapeHTML()}\"," +
+                                                        " ${if (sts.spec.replicas > 0) "false" else "true"}," +
+                                                        " ${if (updateShouldWarn) "true" else "false"})) e.preventDefault(); });"
+                                                idCounter++
+                                            }
+                                            span(classes = "slider round") { }
+                                        }
                                     }
                                 }
+                            }
+                        }
+                        script(type = "text/javascript") {
+                            unsafe {
+                                +"""function update(sts, start, warn) {
+                               |    if (!warn || window.confirm("Stopping/Starting in this state could cause problems. Continue?")) {
+                               |        var xhr = new XMLHttpRequest();
+                               |        xhr.open("POST", "/update?sts=" + sts + "&start=" + start, false);
+                               |        xhr.send();
+                               |        location.reload();
+                               |        return true;
+                               |    } else {
+                               |        return false;
+                               |    }
+                               |}
+                               |window.setTimeout(function() { location.reload(); }, 30000);""".trimMargin()
+                                +scriptLines.joinToString("\n ")
                             }
                         }
                     }
