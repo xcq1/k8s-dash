@@ -14,6 +14,8 @@ jobs:
           java-version: '11'
           server-id: github
 
+      - uses: actions/checkout@v2
+
       - name: Publish to GitHub Container Registry
         run: ./gradlew jib
         env:
