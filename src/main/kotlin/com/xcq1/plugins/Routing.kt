@@ -164,7 +164,7 @@ fun Application.configureRouting(k8sHost: String?) {
                         ul {
                             statefulSets.items.forEach { sts ->
                                 val podPresent = sts.status.replicas > 0
-                                val podReady = sts.status.readyReplicas > 0
+                                val podReady = sts.status.readyReplicas?.let { it > 0 } ?: false
 
                                 li {
                                     +sts.metadata.name
