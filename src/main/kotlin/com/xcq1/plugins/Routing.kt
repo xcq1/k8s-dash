@@ -124,6 +124,18 @@ fun Application.configureRouting(k8sHost: String?) {
                     rule("input:checked + .slider:before") {
                         transform { translateX(1.em) }
                     }
+
+                    rule("li a") {
+                        color = Color.lightSlateGray
+                        textDecoration = TextDecoration.none
+                        border(1.px, BorderStyle.solid, Color.lightSlateGray, .2.em)
+                        backgroundColor = Color.darkSlateBlue
+                        padding(.2.em)
+                    }
+                    rule("li a:hover") {
+                        color = Color.aliceBlue
+                        backgroundColor = Color.slateBlue
+                    }
                 }
             }
 
@@ -201,6 +213,13 @@ fun Application.configureRouting(k8sHost: String?) {
                                                 idCounter++
                                             }
                                             span(classes = "slider round") { }
+                                        }
+                                        if (podPresent && podReady && sts.metadata.annotations != null &&
+                                            "k8s-dash/link" in sts.metadata.annotations
+                                        ) {
+                                            a(href = sts.metadata.annotations["k8s-dash/link"], classes = "marginleft") {
+                                                +"Connect"
+                                            }
                                         }
                                     }
                                 }

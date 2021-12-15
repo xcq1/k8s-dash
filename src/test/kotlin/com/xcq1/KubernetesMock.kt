@@ -15,6 +15,7 @@ fun main() {
             }
         }
     }
+    stateOfSpec["link"] = 1
 
     server.expect().withPath("/apis/apps/v1/statefulsets").andReply(200) {
         StatefulSetListBuilder()
@@ -31,6 +32,12 @@ fun main() {
                         }
                     }
                 }
+                this.addNewItem()
+                    .withNewMetadata().withNamespace("default").withName("server-with-link")
+                    .withResourceVersion("1").withAnnotations<String, String>(mapOf("k8s-dash/link" to "https://google.com")).endMetadata()
+                    .withNewSpec().withReplicas(stateOfSpec["link"]).endSpec()
+                    .withNewStatus().withReplicas(stateOfSpec["link"]).withReadyReplicas(stateOfSpec["link"]).endStatus()
+                    .endItem()
                 this.build()
             }
     }.always()
@@ -47,6 +54,8 @@ fun main() {
                         .build()
                 }.always()
 
+
+
                 server.expect().patch().withPath("/apis/apps/v1/namespaces/default/statefulsets/server-$specReplicas$statusReplicas$statusReadyReplicas")
                     .andReply(204) {
                         val value = if ("\"value\":1" in it.body.toString()) 1 else 0
@@ -57,6 +66,21 @@ fun main() {
         }
     }
 
+    server.expect().withPath("/apis/apps/v1/statefulsets/server-with-link").andReply(200) {
+        StatefulSetBuilder()
+            .withNewMetadata().withNamespace("default").withName("server-with-link")
+            .withResourceVersion("1").withAnnotations<String, String>(mapOf("k8s-dash/link" to "https://google.com")).endMetadata()
+            .withNewSpec().withReplicas(stateOfSpec["link"]).endSpec()
+            .withNewStatus().withReplicas(stateOfSpec["link"]).withReadyReplicas(stateOfSpec["link"]).endStatus()
+            .build()
+    }.always()
+
+    server.expect().patch().withPath("/apis/apps/v1/namespaces/default/statefulsets/server-with-link")
+        .andReply(204) {
+            val value = if ("\"value\":1" in it.body.toString()) 1 else 0
+            stateOfSpec["link"] = value
+            ""
+        }.always()
 
     server.start()
     println("Mock K8s running at ${server.hostName}:${server.port}")
